@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 40px auto; }
+    .row { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
+    input, button, select, textarea { padding: 10px 12px; }
+    textarea { width: 100%; min-height: 70px; }
+    .card { border: 1px solid #ddd; padding: 14px; border-radius: 8px; margin-bottom: 12px; }
+    .muted { color: #666; font-size: 12px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+    label { font-size: 12px; color: #444; display: block; margin-bottom: 4px; }
+    .sectionTitle { font-weight: 700; margin-top: 12px; margin-bottom: 6px; }
+    .pillRow { display: flex; gap: 10px; flex-wrap: wrap; }
+    .pill { border: 1px solid #ddd; border-radius: 999px; padding: 6px 10px; font-size: 12px; display: inline-flex; gap: 8px; align-items: center; }
+    .pill input { padding: 0; }
+    .actions { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+    .ok { color: #0a7a0a; font-size: 12px; }
+    .err { color: #b00020; font-size: 12px; }
+    .topLine { display:flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+    .small { font-size: 12px; color: #444; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .topBar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 10px 0; border-bottom: 1px solid #ddd; }
+    .userStatus { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+    .dot.green { background-color: #0a7a0a; }
+    .login-card {
+      max-width: 520px;
+      margin: 60px auto;
+      padding: 32px;
+      box-sizing: border-box;
+    }
+
+    .login-card input,
+    .login-card button {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .login-card input {
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      font-size: 16px;
+    }
+
+    .login-card button {
+      padding: 14px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #loginSection { padding: 20px; border: 1px solid #ddd; border-radius: 8px; max-width: 400px; margin: 40px auto; }
+    #loginSection input { width: 100%; margin-bottom: 10px; }
+    #loginSection button { width: 100%; }
+    h1 { margin: 0; }
+
+    /* Modal styles for Add Nanny */
+    .modalBack {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 10px;
+      width: min(560px, 100%);
+      border: 1px solid #ddd;
+      padding: 18px;
+    }
+
+    .modal h3 {
+      margin: 0 0 12px 0;
+    }
+
+    .modal .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .modal input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+    }
+
+    .modal .row {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- LOGIN SECTION -->
+  <div id="loginSection" class="login-card">
+    <h1>Admin Login</h1>
+
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button type="button" id="loginBtn">Login</button>
+  </div>
+
+  <!-- AUTHENTICATED APP SECTION -->
+  <div id="appSection" style="display:none;">
+    <!-- Top user bar -->
+    <div class="topBar">
+      <h1>Admin</h1>
+      <div style="display:flex; gap:15px; align-items:center;">
+        <div class="userStatus">
+          <span class="dot green"></span>
+          <span id="loggedInUser"></span>
+        </div>
+        <button onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+    <div id="navControls" class="row" style="gap:12px;">
+      <button id="btnClients" type="button">Manage clients</button>
+      <button id="btnNannies" type="button">Manage nannies</button>
+      <button id="btnAdmins" type="button">Manage admins</button>
+    </div>
+
+    <div id="clientsSection" style="display:none;">
+      <div class="row">
+        <input id="clientSearch" placeholder="Search clients by name, email or contact number" style="flex:1" />
+        <button id="clientSearchBtn" type="button">Search</button>
+      </div>
+
+      <div class="card">
+        <div class="sectionTitle">Add client</div>
+        <div class="grid">
+          <div><label>Name</label><input id="newClientName" placeholder="Full name"></div>
+          <div><label>Email</label><input id="newClientEmail" placeholder="Email"></div>
+          <div><label>Contact number</label><input id="newClientPhone" placeholder="Phone"></div>
+        </div>
+        <div class="actions">
+          <button id="addClientBtn" type="button">Add client</button>
+          <span class="ok" id="addClientOk" style="display:none;">Saved</span>
+          <span class="err" id="addClientErr" style="display:none;"></span>
+        </div>
+      </div>
+
+      <div id="clientsResults"></div>
+    </div>
+
+    <div id="nanniesSection" style="display:none;">
+      <div class="row" style="justify-content: space-between;">
+        <div class="row" style="flex:1;">
+          <input id="nannySearch" placeholder="Search nannies by name or email" style="flex:1" oninput="applyFilters()" />
+        </div>
+        <button type="button" onclick="loadNannies()">Load nannies</button>
+      </div>
+
+      <div class="row" style="flex-wrap: wrap; align-items:flex-start;">
+        <input id="fLocation" placeholder="Location" style="flex:1; min-width:220px" oninput="applyFilters()" />
+        <div style="min-width:220px;"><label>Race</label><div class="pillRow" id="fRaceBox"></div></div>
+        <div style="min-width:220px;"><label>Tags</label><div class="pillRow" id="fTagBox"></div></div>
+        <div style="min-width:220px;"><label>Qualifications</label><div class="pillRow" id="fQualBox"></div></div>
+        <div style="min-width:220px;"><label>Languages</label><div class="pillRow" id="fLangBox"></div></div>
+        <div style="display:flex; gap:10px; align-items:flex-end;">
+          <div><label>Min age</label><input id="fMinAge" type="number" style="width:120px" oninput="applyFilters()" /></div>
+          <div><label>Max age</label><input id="fMaxAge" type="number" style="width:120px" oninput="applyFilters()" /></div>
+          <button type="button" onclick="resetFilters()" style="height:42px;">Reset</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sectionTitle">Add nanny</div>
+        <div class="grid">
+          <div><label>Name</label><input id="newNannyName" placeholder="Full name"></div>
+          <div><label>Email</label><input id="newNannyEmail" placeholder="Email"></div>
+          <div><label>Contact number</label><input id="newNannyPhone" placeholder="Phone"></div>
+        </div>
+        <div class="actions">
+          <button id="addNannyBtn" type="button">Add nanny</button>
+          <span class="ok" id="addNannyOk" style="display:none;">Saved</span>
+          <span class="err" id="addNannyErr" style="display:none;"></span>
+        </div>
+      </div>
+
+      <div id="results"></div>
+    </div>
+
+    <div id="adminsSection" style="display:none;">
+      <div class="row">
+        <input id="adminSearch" placeholder="Search admins by name or email" style="flex:1" />
+        <button id="adminSearchBtn" type="button">Search</button>
+      </div>
+
+      <div class="card">
+        <div class="sectionTitle">Add admin</div>
+        <div class="grid">
+          <div><label>Email</label><input id="newAdminEmail" placeholder="Email"></div>
+          <div><label>Password</label><input id="newAdminPassword" placeholder="Temporary password"></div>
+        </div>
+        <div class="actions">
+          <button id="addAdminBtn" type="button">Add admin</button>
+          <span class="ok" id="addAdminOk" style="display:none;">Saved</span>
+          <span class="err" id="addAdminErr" style="display:none;"></span>
+        </div>
+      </div>
+
+      <div id="adminsResults"></div>
+    </div>
+    </div>
+  </div>
+
+
+  <script>
+let renderToken = 0;
+            function showSection(name) {
+              const sections = ["clientsSection","nanniesSection","adminsSection"];
+              sections.forEach(id => document.getElementById(id).style.display = (id === name ? "block" : "none"));
+              document.getElementById("results").innerHTML = "";
+              document.getElementById("clientsResults").innerHTML = "";
+              document.getElementById("adminsResults").innerHTML = "";
+            }
+
+            document.addEventListener("DOMContentLoaded", () => {
+              document.getElementById("btnClients").addEventListener("click", () => showSection("clientsSection"));
+              document.getElementById("btnNannies").addEventListener("click", () => showSection("nanniesSection"));
+              document.getElementById("btnAdmins").addEventListener("click", () => showSection("adminsSection"));
+            });
+
+            let clientData = [];
+
+            async function loadClients() {
+              if (!requireLogin()) return;
+              const data = await fetchJson("/admin/parents", { headers: authHeaders() });
+              clientData = data || [];
+              renderClients(clientData);
+            }
+
+            function renderClients(list) {
+              const el = document.getElementById("clientsResults");
+              el.innerHTML = "";
+              if (!list.length) { el.innerHTML = `<p class="muted">No results.</p>`; return; }
+
+              list.forEach(p => {
+                const div = document.createElement("div");
+                div.className = "card";
+                div.innerHTML = `
+                  <div class="topLine">
+                    <div><strong>${escapeHtml(p.name)} (${escapeHtml(p.email)})</strong></div>
+                    <div class="small">User ID: ${p.user_id}</div>
+                  </div>
+                  <div class="muted">Phone: ${escapeHtml(p.phone ?? "")}</div>
+                `;
+                el.appendChild(div);
+              });
+            }
+
+            function filterClients() {
+              const q = (document.getElementById("clientSearch").value || "").toLowerCase().trim();
+              if (!q) return renderClients(clientData);
+
+              const filtered = clientData.filter(p => {
+                return (p.name || "").toLowerCase().includes(q)
+                  || (p.email || "").toLowerCase().includes(q)
+                  || (p.phone || "").toLowerCase().includes(q);
+              });
+
+              renderClients(filtered);
+            }
+
+            document.addEventListener("DOMContentLoaded", async () => {
+              document.getElementById("clientSearchBtn").addEventListener("click", async () => {
+                if (!clientData.length) await loadClients();
+                filterClients();
+              });
+            });
+
+            document.addEventListener("DOMContentLoaded", () => {
+              const btn = document.getElementById("addNannyBtn");
+              if (!btn) return;
+
+              btn.addEventListener("click", async () => {
+                if (!requireLogin()) return;
+
+                const name = (document.getElementById("newNannyName").value || "").trim();
+                const email = (document.getElementById("newNannyEmail").value || "").trim().toLowerCase();
+                const phone = (document.getElementById("newNannyPhone").value || "").trim();
+
+                const ok = document.getElementById("addNannyOk");
+                const err = document.getElementById("addNannyErr");
+                ok.style.display = "none";
+                err.style.display = "none";
+                err.textContent = "";
+
+                if (!name || !email) {
+                  err.textContent = "Name and email are required.";
+                  err.style.display = "inline";
+                  return;
+                }
+
+                btn.disabled = true;
+                const original = btn.textContent;
+                btn.textContent = "Saving...";
+
+                try {
+                  // 1) create user (pick a temp password rule you like)
+                  const tempPassword = "ChangeMe123!";
+                  const user = await fetchJson("/auth/signup", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, email, password: tempPassword, role: "nanny", phone: phone || null })
+                  });
+
+                  // 2) create nanny
+                  const nanny = await fetchJson(`/nannies?user_id=${encodeURIComponent(user.id)}`, {
+                    method: "POST",
+                    headers: authHeaders()
+                  });
+
+                  // 3) create profile
+                  await fetchJson(`/nanny-profiles?nanny_id=${encodeURIComponent(nanny.id)}`, {
+                    method: "POST",
+                    headers: authHeaders()
+                  });
+
+                  ok.style.display = "inline";
+                  setTimeout(() => (ok.style.display = "none"), 1200);
+
+                  document.getElementById("newNannyName").value = "";
+                  document.getElementById("newNannyEmail").value = "";
+                  document.getElementById("newNannyPhone").value = "";
+
+                  await loadNannies();
+                } catch (e) {
+                  err.textContent = "Failed: " + (e?.message || e);
+                  err.style.display = "inline";
+                  console.error(e);
+                } finally {
+                  btn.disabled = false;
+                  btn.textContent = original;
+                }
+              });
+            });
+        function showNannyFilters(show) {
+          const el = document.getElementById("nannyFilters");
+          if (el) el.style.display = show ? "block" : "none";
+        }
+    let nannyData = [];
+    let nannyCards = [];
+    let authToken = null;
+    let authUser = null; // { id, name, email, role }
+    let inactivityTimer = null;
+    const INACTIVITY_MS = 15 * 60 * 1000;
+
+    function setAuthUI(isLoggedIn, email = "") {
+      document.getElementById("loginSection").style.display = isLoggedIn ? "none" : "block";
+      document.getElementById("appSection").style.display = isLoggedIn ? "block" : "none";
+
+      if (isLoggedIn) {
+        document.getElementById("loggedInUser").innerText = email;
+      } else {
+        document.getElementById("loggedInUser").innerText = "";
+      }
+    }
+
+    function logout(showAlert = false) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("userEmail");
+      authToken = null;
+
+      if (inactivityTimer) clearTimeout(inactivityTimer);
+
+      setAuthUI(false);
+
+      if (showAlert) alert("Signed out due to 15 minutes of inactivity.");
+    }
+
+    function resetInactivityTimer() {
+      if (inactivityTimer) clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => logout(true), INACTIVITY_MS);
+    }
+
+    function authHeaders() {
+      const token = localStorage.getItem("token");
+      if (!token) return {};
+      return { Authorization: `Bearer ${token}` };
+    }
+
+    function requireLogin() {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please login first");
+        return false;
+      }
+      return true;
+    }
+
+    async function login() {
+      const email = (document.getElementById("email").value || "").trim().toLowerCase();
+      const password = document.getElementById("password").value || "";
+
+      if (!email || !password) {
+        alert("Enter email and password");
+        return;
+      }
+
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        alert("Login failed");
+        console.log("login failed", res.status, txt);
+        return;
+      }
+
+      const data = await res.json();
+
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("userEmail", email);
+      authToken = data.access_token;
+
+      setAuthUI(true, email);
+      resetInactivityTimer();
+    }
+
+    ["click", "mousemove", "keydown", "scroll", "touchstart"].forEach(evt =>
+      document.addEventListener(evt, () => {
+        if (localStorage.getItem("token")) resetInactivityTimer();
+      })
+    );
+
+    window.addEventListener("load", () => {
+      const token = localStorage.getItem("token");
+      const email = localStorage.getItem("userEmail");
+
+      if (token && email) {
+        authToken = token;
+        setAuthUI(true, email);
+        resetInactivityTimer();
+      } else {
+        setAuthUI(false);
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const btn = document.getElementById("loginBtn");
+      if (btn) btn.addEventListener("click", login);
+    });
+
+    async function fetchJson(url, opts = {}) {
+      const res = await fetch(url, opts);
+      if (res.status === 401) {
+        logout();
+        throw new Error("Unauthorized");
+      }
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status} ${res.statusText} ${text}`);
+      }
+      return res.json();
+    }
+
+    function setResultsHeading(title) {
+      const el = document.getElementById("results");
+      el.innerHTML = `<h2>${title}</h2>`;
+      return el;
+    }
+
+    async function loadParents() {
+      if (!requireLogin()) return;
+
+      showNannyFilters(false);
+      const el = setResultsHeading("Parents");
+
+      try {
+        const data = await fetchJson("/admin/parents", { headers: authHeaders() });
+        if (!data.length) {
+          el.innerHTML += `<p class="muted">No results.</p>`;
+          return;
+        }
+
+        data.forEach(p => {
+          const div = document.createElement("div");
+          div.className = "card";
+          div.innerHTML = `
+            <div class="topLine">
+              <div><strong>${escapeHtml(p.name)} (${escapeHtml(p.email)})</strong></div>
+              <div class="small">User ID: ${p.user_id}</div>
+            </div>
+            <div class="grid">
+              <div>
+                <label>Phone</label>
+                <input data-k="phone" value="${escapeAttr(p.phone ?? "")}" placeholder="Phone" />
+              </div>
+              <div>
+                <label>Area</label>
+                <input data-k="areaName" value="${escapeAttr(p.area ? p.area.name : "")}" placeholder="Area name (display only)" disabled />
+              </div>
+            </div>
+            <div class="muted">Parent area changes are handled via the parent update endpoint, wire it once you add an Areas dropdown here.</div>
+          `;
+          el.appendChild(div);
+        });
+      } catch (e) {
+        alert("Unauthorized or error loading parents");
+        console.error(e);
+      }
+    }
+
+
+    async function loadNannies() {
+      const token = ++renderToken;
+      if (!requireLogin()) return;
+      showNannyFilters(true);
+
+      const el = setResultsHeading("Nannies");
+      el.innerHTML += `<p class="muted">Loading master data and nannies.</p>`;
+
+      try {
+        const headers = authHeaders();
+
+
+        const [quals, tagMaster, langs, nannies] = await Promise.all([
+          fetchJson("/qualifications", { headers }),
+          fetchJson("/nanny-tags", { headers }),
+          fetchJson("/languages", { headers }),
+          fetchJson("/admin/nannies", { headers })
+        ]);
+
+        window.__master = { quals, tags: tagMaster, langs };
+
+        // fetch profiles for each nanny so filters work
+        const profiles = await Promise.all(
+          (nannies || []).map(async (n) => {
+            try {
+              const p = await fetchJson(`/nanny-profiles/${n.nanny_id}`, { headers });
+              return [n.nanny_id, p];
+            } catch {
+              return [n.nanny_id, null];
+            }
+          })
+        );
+
+        const profileMap = new Map(profiles);
+
+        // merge profile fields into each nanny row used by filters
+        const safe = (nannies || []).map(n => {
+          const p = profileMap.get(n.nanny_id) || {};
+          return {
+            ...n,
+            ethnicity: p.ethnicity ?? n.ethnicity ?? n.race ?? null,
+            qualifications: Array.isArray(p.qualifications) ? p.qualifications : [],
+            tags: Array.isArray(p.tags) ? p.tags : [],
+            languages: Array.isArray(p.languages) ? p.languages : [],
+          };
+        });
+
+        nannyData = safe;
+
+        const races = uniqSorted(nannyData.map(n => n.ethnicity || n.race));
+        const tagNames = uniqSorted(tagMaster.map(t => t.name));
+        const qualNames = uniqSorted(quals.map(q => q.name));
+        const langNames = uniqSorted(langs.map(l => l.name));
+
+        renderFilterChecks("fRaceBox", races);
+        renderFilterChecks("fTagBox", tagNames);
+        renderFilterChecks("fQualBox", qualNames);
+        renderFilterChecks("fLangBox", langNames);
+
+        applyFilters(token);
+      } catch (e) {
+        alert("Load nannies failed: " + (e?.message || e));
+        console.error("loadNannies error:", e);
+      }
+    }
+
+    function uniqSorted(arr) {
+      return Array.from(new Set(arr.filter(Boolean).map(x => String(x).trim()).filter(Boolean)))
+        .sort((a,b) => a.localeCompare(b));
+    }
+
+    function renderFilterChecks(containerId, values) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      el.innerHTML = "";
+      values.forEach(v => {
+        const pill = document.createElement("label");
+        pill.className = "pill";
+        pill.innerHTML = `
+          <input type="checkbox" value="${escapeAttr(v)}" />
+          <span>${escapeHtml(v)}</span>
+        `;
+        pill.querySelector("input").addEventListener("change", applyFilters);
+        el.appendChild(pill);
+      });
+    }
+
+    function getCheckedValues(containerId) {
+      const el = document.getElementById(containerId);
+      if (!el) return [];
+      return Array.from(el.querySelectorAll('input[type="checkbox"]:checked'))
+        .map(x => x.value)
+        .filter(Boolean);
+    }
+
+    async function applyFilters(token) {
+      if (token === undefined) token = ++renderToken;
+      const q = (document.getElementById("nannySearch")?.value || "").trim().toLowerCase();
+      const locationQ = (document.getElementById("fLocation")?.value || "").trim().toLowerCase();
+
+      const selectedRaces = new Set(getCheckedValues("fRaceBox"));
+      const selectedTags = new Set(getCheckedValues("fTagBox"));
+      const selectedQuals = new Set(getCheckedValues("fQualBox"));
+      const selectedLangs = new Set(getCheckedValues("fLangBox"));
+
+      const minAgeRaw = document.getElementById("fMinAge")?.value || "";
+      const maxAgeRaw = document.getElementById("fMaxAge")?.value || "";
+      const minAge = minAgeRaw === "" ? null : Number(minAgeRaw);
+      const maxAge = maxAgeRaw === "" ? null : Number(maxAgeRaw);
+
+      const filtered = (nannyData || []).filter(n => {
+        const name = (n.name || "").toLowerCase();
+        const email = (n.email || "").toLowerCase();
+
+        const loc = String(n.location || n.area || n.area_name || n.city || n.suburb || "").toLowerCase();
+        const nRace = String(n.ethnicity || n.race || "").trim();
+
+        const nTags = (n.tags || []).map(x => (typeof x === "string" ? x : x.name)).filter(Boolean);
+        const nQuals = (n.qualifications || []).map(x => (typeof x === "string" ? x : x.name)).filter(Boolean);
+        const nLangs = (n.languages || []).map(x => (typeof x === "string" ? x : x.name)).filter(Boolean);
+
+        const nAge = Number(n.age);
+
+        if (q && !(name.includes(q) || email.includes(q))) return false;
+        if (locationQ && !loc.includes(locationQ)) return false;
+
+        // OR within the filter group
+        if (selectedRaces.size && !selectedRaces.has(nRace)) return false;
+
+        if (selectedTags.size && !nTags.some(t => selectedTags.has(t))) return false;
+        if (selectedQuals.size && !nQuals.some(x => selectedQuals.has(x))) return false;
+        if (selectedLangs.size && !nLangs.some(x => selectedLangs.has(x))) return false;
+
+        if (minAge !== null && Number.isFinite(nAge) && nAge < minAge) return false;
+        if (maxAge !== null && Number.isFinite(nAge) && nAge > maxAge) return false;
+
+        return true;
+      });
+
+      await renderNannies(filtered, token);
+    }
+
+    function resetFilters() {
+      document.getElementById("nannySearch").value = "";
+      document.getElementById("fLocation").value = "";
+      document.getElementById("fMinAge").value = "";
+      document.getElementById("fMaxAge").value = "";
+
+      ["fRaceBox","fTagBox","fQualBox","fLangBox"].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+      });
+
+      applyFilters();
+    }
+
+    function getMaster() {
+      return window.__master || { quals: [], tags: [], langs: [] };
+    }
+
+    async function renderNannies(list, token) {
+      if (token === undefined) token = renderToken;
+      const el = setResultsHeading("Nannies");
+      el.querySelectorAll(".card").forEach(x => x.remove());
+
+      if (!list.length) {
+        el.innerHTML += `<p class="muted">No results.</p>`;
+        return;
+      }
+
+      const master = getMaster();
+      for (const n of list) {
+        if (token !== renderToken) return;
+        const card = await buildNannyCard(n, master, token);
+        if (card) el.appendChild(card);
+      }
+    }
+
+    async function buildNannyCard(n, master, token) {
+      if (token === undefined) token = renderToken;
+      if (token !== renderToken) return null;
+      const div = document.createElement("div");
+      div.className = "card";
+
+      const headers = authHeaders();
+
+      let profile = null;
+      try {
+        profile = await fetchJson(`/nanny-profiles/${n.nanny_id}`);
+      } catch (e) {
+        profile = {
+          bio: n.bio ?? "",
+          date_of_birth: n.date_of_birth ?? null,
+          nationality: n.nationality ?? "",
+          ethnicity: n.ethnicity ?? "",
+          qualifications: [],
+          tags: [],
+          languages: []
+        };
+      }
+
+      const selectedQualIds = new Set((profile.qualifications || []).map(x => x.id));
+      const selectedTagIds = new Set((profile.tags || []).map(x => x.id));
+      const selectedLangIds = new Set((profile.languages || []).map(x => x.id));
+
+      div.innerHTML = `
+        <div class="topLine">
+          <div>
+            <strong>${escapeHtml(n.name)} (${escapeHtml(n.email)})</strong><br/>
+            <span class="muted">Nanny ID: ${n.nanny_id}, User ID: ${n.user_id}</span>
+          </div>
+          <div class="small">
+            <label style="margin:0">Approved</label>
+            <select data-k="approved">
+              <option value="true" ${n.approved ? "selected" : ""}>true</option>
+              <option value="false" ${!n.approved ? "selected" : ""}>false</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div>
+            <label>Phone</label>
+            <input data-k="phone" value="${escapeAttr(n.phone ?? "")}" placeholder="Phone" />
+          </div>
+          <div>
+            <label>Nickname</label>
+            <input data-k="nickname" value="${escapeAttr(n.nickname ?? "")}" placeholder="Nickname" />
+          </div>
+          <div>
+            <label>Last initial</label>
+            <input data-k="last_initial" value="${escapeAttr(n.last_initial ?? "")}" placeholder="B" maxlength="1" />
+          </div>
+          <div>
+            <label>Profile photo URL</label>
+            <input data-k="profile_photo_url" value="${escapeAttr(n.profile_photo_url ?? "")}" placeholder="https://..." />
+          </div>
+
+          <div>
+            <label>Date of birth</label>
+            <input data-k="date_of_birth" value="${escapeAttr(profile.date_of_birth ?? "")}" placeholder="YYYY-MM-DD" />
+          </div>
+          <div>
+            <label>Nationality</label>
+            <input data-k="nationality" value="${escapeAttr(profile.nationality ?? "")}" placeholder="Nationality" />
+          </div>
+
+          <div>
+            <label>Ethnicity</label>
+            <input data-k="ethnicity" value="${escapeAttr(profile.ethnicity ?? "")}" placeholder="Ethnicity" />
+          </div>
+          <div>
+            <label>Bio</label>
+            <textarea data-k="bio" placeholder="Bio">${escapeHtml(profile.bio ?? "")}</textarea>
+          </div>
+        </div>
+
+        <div class="sectionTitle">Qualifications</div>
+        <div class="pillRow" data-k="quals"></div>
+
+        <div class="sectionTitle">Tags</div>
+        <div class="pillRow" data-k="tags"></div>
+
+        <div class="sectionTitle">Languages</div>
+        <div class="pillRow" data-k="langs"></div>
+
+        <div class="actions">
+          <button data-k="saveBtn">Save</button>
+          <span class="ok" data-k="okMsg" style="display:none">Saved</span>
+          <span class="err" data-k="errMsg" style="display:none"></span>
+        </div>
+      `;
+
+      const qualsEl = div.querySelector('[data-k="quals"]');
+      const tagsEl = div.querySelector('[data-k="tags"]');
+      const langsEl = div.querySelector('[data-k="langs"]');
+
+      renderChecklist(qualsEl, master.quals, selectedQualIds);
+      renderChecklist(tagsEl, master.tags, selectedTagIds);
+      renderChecklist(langsEl, master.langs, selectedLangIds);
+
+      div.querySelector('[data-k="saveBtn"]').addEventListener("click", async () => {
+  const okMsg = div.querySelector('[data-k="okMsg"]');
+  const errMsg = div.querySelector('[data-k="errMsg"]');
+  const saveBtn = div.querySelector('[data-k="saveBtn"]');
+
+  okMsg.style.display = "none";
+  errMsg.style.display = "none";
+  errMsg.textContent = "";
+
+  // disable while saving
+  saveBtn.disabled = true;
+  const originalText = saveBtn.textContent;
+  saveBtn.textContent = "Saving...";
+
+  try {
+    const approved = div.querySelector('[data-k="approved"]').value === "true";
+
+    const phone = div.querySelector('[data-k="phone"]').value.trim();
+    const nickname = div.querySelector('[data-k="nickname"]').value.trim();
+    const last_initial = div.querySelector('[data-k="last_initial"]').value.trim();
+    const profile_photo_url = div.querySelector('[data-k="profile_photo_url"]').value.trim();
+
+    const date_of_birth = div.querySelector('[data-k="date_of_birth"]').value.trim();
+    const nationality = div.querySelector('[data-k="nationality"]').value.trim();
+    const ethnicity = div.querySelector('[data-k="ethnicity"]').value.trim();
+    const bio = div.querySelector('[data-k="bio"]').value;
+
+    const qualification_ids = getCheckedIds(qualsEl);
+    const tag_ids = getCheckedIds(tagsEl);
+    const language_ids = getCheckedIds(langsEl);
+
+    await fetchJson(`/admin/users/${n.user_id}`, {
+      method: "PUT",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        phone: phone || null,
+        nickname: nickname || null,
+        last_initial: last_initial || null,
+        profile_photo_url: profile_photo_url || null
+      })
+    });
+
+    await fetchJson(`/admin/nannies/${n.nanny_id}`, {
+      method: "PUT",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ approved })
+    });
+
+    await fetchJson(`/admin/nanny-profiles/${n.nanny_id}`, {
+      method: "PUT",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bio: bio || null,
+        date_of_birth: date_of_birth || null,
+        nationality: nationality || null,
+        ethnicity: ethnicity || null,
+        qualification_ids,
+        tag_ids,
+        language_ids
+      })
+    });
+
+    okMsg.style.display = "inline";
+    setTimeout(() => { okMsg.style.display = "none"; }, 1200);
+  } catch (e) {
+    errMsg.textContent = "Save failed. Check console.";
+    errMsg.style.display = "inline";
+    console.error(e);
+  } finally {
+    // always re-enable
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalText;
+}
+});
+
+      return div;
+    }
+
+    function renderChecklist(container, items, selectedSet) {
+      container.innerHTML = "";
+      (items || []).forEach(item => {
+        const id = item.id;
+        const pill = document.createElement("label");
+        pill.className = "pill";
+        pill.innerHTML = `
+          <input type="checkbox" value="${id}" ${selectedSet.has(id) ? "checked" : ""} />
+          <span>${escapeHtml(item.name)}</span>
+        `;
+        container.appendChild(pill);
+      });
+    }
+
+    function getCheckedIds(container) {
+      return Array.from(container.querySelectorAll('input[type="checkbox"]:checked'))
+        .map(x => Number(x.value))
+        .filter(x => Number.isFinite(x));
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function escapeAttr(s) {
+      return escapeHtml(s).replaceAll("\n", " ");
+    }
+  </script>
+</body>
+</html>
